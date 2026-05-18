@@ -3,6 +3,16 @@ import { nanoid } from 'nanoid';
 import { NotFoundError } from '../errors/not-found.error';
 import { BlogRepository, IUpdateBlogParams } from '../repository/blog.repository';
 
+function _decodeHtmlEntities(str: string): string {
+  return str
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#x27;/g, "'")
+    .replace(/&#x2F;/g, '/');
+}
+
 class BlogService {
   constructor(private readonly _blogRepository: BlogRepository) { }
 
@@ -52,8 +62,11 @@ class BlogService {
       slug = `${slug}-${nanoid(6)}`;
     }
 
+    const content = params.content ? _decodeHtmlEntities(params.content) : params.content;
+
     return this._blogRepository.create({
       ...params,
+      content,
       slug,
       isPublished: params.isPublished || false,
       publishedAt: params.isPublished ? new Date() : null,
@@ -75,6 +88,9 @@ class BlogService {
     if (!blog) throw new NotFoundError('Blog not found');
 
     const updateData: Record<string, unknown> = { ...params };
+    if (params.content !== undefined) {
+      updateData.content = _decodeHtmlEntities(params.content);
+    }
 
     if (params.title) {
       let slug = this._generateSlug(params.title);
