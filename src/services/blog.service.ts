@@ -9,7 +9,7 @@ function _decodeHtmlEntities(str: string): string {
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>')
     .replace(/&quot;/g, '"')
-    .replace(/&#x27;/g, "'")
+    .replace(/&#x27;/g, '\'')
     .replace(/&#x2F;/g, '/');
 }
 
