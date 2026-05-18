@@ -59,6 +59,14 @@ import { adminUpdateOrderStatusValidator } from '../middlewares/validators/check
 import { listReviewsAdmin, deleteReview, createReviewAdmin } from '../controllers/admin.review.controller';
 import { createAdminReviewValidator } from '../middlewares/validators/review.validator';
 import { getRevenue, getTopProducts, getOrdersByStatus } from '../controllers/admin.analytics.controller';
+import {
+  listBlogsAdmin,
+  getBlogAdmin,
+  createBlog,
+  updateBlog,
+  deleteBlog,
+} from '../controllers/admin.blog.controller';
+import { createBlogValidator, updateBlogValidator } from '../middlewares/validators/blog.validator';
 
 const adminRouter = Router();
 
@@ -120,6 +128,13 @@ adminRouter.post('/orders/:orderId/refund', asyncHandler(adminInitiateRefund));
 adminRouter.get('/reviews', asyncHandler(listReviewsAdmin));
 adminRouter.post('/reviews', createAdminReviewValidator, asyncHandler(createReviewAdmin));
 adminRouter.delete('/reviews/:id', asyncHandler(deleteReview));
+
+// ── Blogs ─────────────────────────────────────────────────────────────────────
+adminRouter.get('/blogs', asyncHandler(listBlogsAdmin));
+adminRouter.post('/blogs', createBlogValidator, asyncHandler(createBlog));
+adminRouter.get('/blogs/:id', asyncHandler(getBlogAdmin));
+adminRouter.patch('/blogs/:id', updateBlogValidator, asyncHandler(updateBlog));
+adminRouter.delete('/blogs/:id', asyncHandler(deleteBlog));
 
 // ── Analytics ─────────────────────────────────────────────────────────────────
 adminRouter.get('/analytics/revenue', asyncHandler(getRevenue));

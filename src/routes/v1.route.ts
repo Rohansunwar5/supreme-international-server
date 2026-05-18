@@ -11,6 +11,7 @@ import checkoutRouter from './checkout.route';
 import paymentRouter from './payment.route';
 import orderRouter from './order.route';
 import userRouter from './user.route';
+import blogRouter from './blog.route';
 
 const v1Router = Router();
 
@@ -27,6 +28,7 @@ v1Router.use('/checkout', checkoutRouter);
 v1Router.use('/payments', paymentRouter);
 v1Router.use('/orders', orderRouter);
 v1Router.use('/user', userRouter);
+v1Router.use('/blogs', blogRouter);
 v1Router.get('/country', asyncHandler(country));
 
 export default v1Router;
