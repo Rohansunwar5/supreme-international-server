@@ -78,7 +78,7 @@ class AuthService {
     });
     if (!user) throw new InternalServerError('Failed to Onboard user');
 
-    mailService.sendEmail(email, 'verification.ejs', { verificationCode }, 'Verify Your Email Address to Get Started! - WorkPlay Studio Pvt Ltd.');
+    mailService.sendEmail(email, 'verification.ejs', { verificationCode }, 'Verify Your Email Address to Get Started! - WorkPlay Studio Pvt Ltd.').catch(() => {});
 
     // generate JWT Token
     const accessToken = await this.generateJWTToken(user._id);
@@ -125,7 +125,7 @@ class AuthService {
     if (!user) throw new InternalServerError('Failed to generate verification code');
 
     // send email with newVerificationCode;
-    mailService.sendEmail(user.email, 'verification.ejs', { verificationCode }, 'Verify Your Email Address to Get Started! - WorkPlay Studio Pvt Ltd.');
+    mailService.sendEmail(user.email, 'verification.ejs', { verificationCode }, 'Verify Your Email Address to Get Started! - WorkPlay Studio Pvt Ltd.').catch(() => {});
 
     return true;
   }
@@ -149,7 +149,7 @@ class AuthService {
     if (!user) throw new InternalServerError('Failed to generate verification code');
 
     // send mail
-    mailService.sendEmail(user.email, 'reset-password.ejs', { verificationCode, firstName: user.firstName }, 'Reset Your Password: Regain Access to Your Account! - WorkPlay Studio Pvt Ltd.');
+    mailService.sendEmail(user.email, 'reset-password.ejs', { verificationCode, firstName: user.firstName }, 'Reset Your Password: Regain Access to Your Account! - WorkPlay Studio Pvt Ltd.').catch(() => {});
 
     return true;
   }
@@ -174,7 +174,7 @@ class AuthService {
     await this._userRepository.updateVerificationCode(user.id, sha1(newVerificationCode));
 
     // send mail
-    mailService.sendEmail(user.email, 'reset-password-success.ejs', { firstName: user.firstName }, 'Password Reset Successfull: Login Now! - WorkPlay Studio Pvt Ltd.');
+    mailService.sendEmail(user.email, 'reset-password-success.ejs', { firstName: user.firstName }, 'Password Reset Successfull: Login Now! - WorkPlay Studio Pvt Ltd.').catch(() => {});
 
     return true;
   }
