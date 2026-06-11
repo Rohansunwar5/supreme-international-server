@@ -12,6 +12,7 @@ import paymentRouter from './payment.route';
 import orderRouter from './order.route';
 import userRouter from './user.route';
 import blogRouter from './blog.route';
+import quotationRouter from './quotation.route';
 
 const v1Router = Router();
 
@@ -23,6 +24,7 @@ v1Router.use('/auth', authRouter);
 v1Router.use('/contact', contactRouter);
 v1Router.use('/catalog', catalogRouter);
 v1Router.use('/cart', cartRouter);
+v1Router.use('/quotations', quotationRouter);
 v1Router.use('/admin', adminRouter);
 v1Router.use('/checkout', checkoutRouter);
 v1Router.use('/payments', paymentRouter);

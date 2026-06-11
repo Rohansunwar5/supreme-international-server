@@ -64,6 +64,7 @@ export const createVariantValidator = [
   isGreaterThanZero({ key: 'price' }),
   isGreaterThanZero({ key: 'originalPrice' }),
   isGreaterThanZero({ key: 'stock', allowZero: true }),
+  check('moq').optional().isInt({ min: 1 }).withMessage('moq must be an integer >= 1'),
   isArray('attributes'),
   check('attributes').isArray({ min: 1 }).withMessage('attributes must have at least one entry'),
   check('attributes.*.attributeId').isMongoId().withMessage('Invalid attributeId in attributes'),
@@ -86,6 +87,7 @@ export const updateVariantValidator = [
   check('price').optional().isNumeric().withMessage('price must be numeric'),
   check('originalPrice').optional().isNumeric().withMessage('originalPrice must be numeric'),
   check('stock').optional().isNumeric().withMessage('stock must be numeric'),
+  check('moq').optional().isInt({ min: 1 }).withMessage('moq must be an integer >= 1'),
   check('isActive').optional().isBoolean().withMessage('isActive must be boolean'),
   ...validateRequest,
 ];

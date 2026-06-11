@@ -8,8 +8,9 @@ import { guestCartCacheManager, IGuestCart, IGuestCartItem } from './cache/entit
 import { ICartItem } from '../models/cart.model';
 import couponService from './coupon.service';
 import { getEffectivePrice } from '../utils/flash-sale.util';
+import config from '../config';
 
-const MAX_QTY_PER_ITEM = 10;
+const MAX_QTY_PER_ITEM = config.MAX_CART_QTY_PER_ITEM;
 
 interface ICartActor {
   userId?: string;

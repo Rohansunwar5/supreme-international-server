@@ -67,6 +67,17 @@ import {
   deleteBlog,
 } from '../controllers/admin.blog.controller';
 import { createBlogValidator, updateBlogValidator } from '../middlewares/validators/blog.validator';
+import {
+  listQuotations,
+  getQuotation,
+  updateQuotationStatus,
+  quotationAnalytics,
+} from '../controllers/admin.quotation.controller';
+import {
+  quotationIdValidator,
+  updateQuotationStatusValidator,
+  listQuotationsValidator,
+} from '../middlewares/validators/quotation.validator';
 
 const adminRouter = Router();
 
@@ -135,6 +146,13 @@ adminRouter.post('/blogs', createBlogValidator, asyncHandler(createBlog));
 adminRouter.get('/blogs/:id', asyncHandler(getBlogAdmin));
 adminRouter.patch('/blogs/:id', updateBlogValidator, asyncHandler(updateBlog));
 adminRouter.delete('/blogs/:id', asyncHandler(deleteBlog));
+
+// ── Quotations (enquiries) ────────────────────────────────────────────────────
+// Register '/quotations/analytics' BEFORE '/quotations/:id' so it isn't captured as an :id.
+adminRouter.get('/quotations', listQuotationsValidator, asyncHandler(listQuotations));
+adminRouter.get('/quotations/analytics', asyncHandler(quotationAnalytics));
+adminRouter.get('/quotations/:id', quotationIdValidator, asyncHandler(getQuotation));
+adminRouter.patch('/quotations/:id/status', quotationIdValidator, updateQuotationStatusValidator, asyncHandler(updateQuotationStatus));
 
 // ── Analytics ─────────────────────────────────────────────────────────────────
 adminRouter.get('/analytics/revenue', asyncHandler(getRevenue));

@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<style>
+  body { font-family: Arial, sans-serif; color: #222; padding: 32px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  .muted { color: #666; font-size: 12px; }
+  table { width: 100%; border-collapse: collapse; margin-top: 24px; }
+  th, td { border: 1px solid #ddd; padding: 8px; font-size: 12px; text-align: left; }
+  th { background: #f5f0e6; }
+  .right { text-align: right; }
+  .totals { margin-top: 16px; width: 280px; float: right; }
+  .totals td { border: none; padding: 4px 8px; }
+  .grand { font-weight: bold; border-top: 2px solid #222 !important; }
+</style>
+</head>
+<body>
+  <h1>Quotation <%= quotationNumber %></h1>
+  <div class="muted"><%= new Date(createdAt).toDateString() %></div>
+  <div style="margin-top:16px">
+    <strong><%= contact.name %></strong><br/>
+    <% if (contact.company) { %><%= contact.company %><br/><% } %>
+    <%= contact.email %><br/>
+    <% if (contact.phoneNumber) { %>+<%= contact.isdCode %> <%= contact.phoneNumber %><% } %>
+  </div>
+  <table>
+    <thead>
+      <tr><th>Product</th><th>SKU</th><th>Options</th><th class="right">Qty</th><th class="right">Unit (<%= currency %>)</th><th class="right">Total</th></tr>
+    </thead>
+    <tbody>
+      <% items.forEach(function(it){ %>
+      <tr>
+        <td><%= it.productName %></td>
+        <td><%= it.sku %></td>
+        <td><%= (it.attributeLabels || []).join(', ') %></td>
+        <td class="right"><%= it.qty %></td>
+        <td class="right"><%= it.unitPrice %></td>
+        <td class="right"><%= it.lineTotal %></td>
+      </tr>
+      <% }); %>
+    </tbody>
+  </table>
+  <table class="totals">
+    <tr><td>Subtotal</td><td class="right"><%= currency %> <%= subtotal %></td></tr>
+    <% if (discountAmount) { %><tr><td>Discount<% if (couponCode) { %> (<%= couponCode %>)<% } %></td><td class="right">- <%= currency %> <%= discountAmount %></td></tr><% } %>
+    <tr class="grand"><td>Total</td><td class="right"><%= currency %> <%= total %></td></tr>
+  </table>
+</body>
+</html>
