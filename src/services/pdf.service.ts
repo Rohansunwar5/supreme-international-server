@@ -8,14 +8,17 @@ const TEMPLATE_PATH = 'src/templates/quotation.ejs';
 
 class PdfService {
   private _browser: Browser | null = null;
+  private _launchPromise: Promise<Browser> | null = null;
 
   private async _getBrowser(): Promise<Browser> {
     if (this._browser && this._browser.connected) return this._browser;
-    this._browser = await puppeteer.launch({
-      headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox'],
-    });
-    return this._browser;
+    if (!this._launchPromise) {
+      this._launchPromise = puppeteer
+        .launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] })
+        .then((b) => { this._browser = b; this._launchPromise = null; return b; })
+        .catch((e) => { this._launchPromise = null; throw e; });
+    }
+    return this._launchPromise;
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -11,8 +11,10 @@ jest.mock('../../utils/r2.util', () => ({
   uploadToR2: jest.fn().mockResolvedValue('https://r2.example/quotations/abc.pdf'),
 }));
 
+import ejs from 'ejs';
 import pdfService from '../../services/pdf.service';
 import { uploadToR2 } from '../../utils/r2.util';
+import { InternalServerError } from '../../errors/internal-server.error';
 
 describe('pdf.service', () => {
   it('renders a quotation to a PDF and uploads it to R2', async () => {
@@ -24,5 +26,13 @@ describe('pdf.service', () => {
     } as never);
     expect(url).toBe('https://r2.example/quotations/abc.pdf');
     expect(uploadToR2).toHaveBeenCalledWith(expect.any(Buffer), 'quotations', 'application/pdf');
+  });
+
+  it('throws InternalServerError when rendering fails', async () => {
+    const spy = jest.spyOn(ejs, 'renderFile').mockRejectedValueOnce(new Error('template boom') as never);
+    await expect(
+      pdfService.renderQuotationPdf({ quotationNumber: 'QT-2', createdAt: new Date(), contact: { name: 'B', email: 'b@x.com', phoneNumber: '', isdCode: '', company: '' }, items: [], subtotal: 0, discountAmount: 0, couponCode: null, total: 0, currency: 'INR' } as never),
+    ).rejects.toBeInstanceOf(InternalServerError);
+    spy.mockRestore();
   });
 });
