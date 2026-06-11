@@ -34,6 +34,12 @@ export interface IProductSort {
   direction: 1 | -1;
 }
 
+export interface IEmployeeScope {
+  companyId: string;
+  productIds: string[];
+  categoryIds: string[];
+}
+
 export class ProductRepository {
   private _model = productModel;
 
@@ -125,6 +131,62 @@ export class ProductRepository {
       .find({ category: categoryId, isActive: true, visibility: 'public', _id: { $ne: productId } })
       .sort({ rating: -1 })
       .limit(limit);
+  }
+
+  private _employeePredicate(scope: IEmployeeScope): Record<string, unknown> {
+    return {
+      $or: [
+        {
+          visibility: 'public',
+          $or: [{ _id: { $in: scope.productIds } }, { category: { $in: scope.categoryIds } }],
+        },
+        { visibility: 'company', ownerCompanyId: scope.companyId },
+      ],
+    };
+  }
+
+  async findEmployeeCatalog(params: {
+    scope: IEmployeeScope;
+    categoryId?: string;
+    restrictToProductIds?: string[];
+    sort: IProductSort;
+    skip: number;
+    limit: number;
+  }): Promise<{ docs: IProduct[]; total: number }> {
+    const query: Record<string, unknown> = { isActive: true, ...this._employeePredicate(params.scope) };
+    if (params.categoryId) query.category = params.categoryId;
+    if (params.restrictToProductIds?.length) query._id = { $in: params.restrictToProductIds };
+
+    const [docs, total] = await Promise.all([
+      this._model.find(query).sort({ [params.sort.field]: params.sort.direction }).skip(params.skip).limit(params.limit),
+      this._model.countDocuments(query),
+    ]);
+    return { docs, total };
+  }
+
+  async findEmployeeProductBySlug(scope: IEmployeeScope, slug: string): Promise<IProduct | null> {
+    return this._model.findOne({ slug, isActive: true, ...this._employeePredicate(scope) });
+  }
+
+  async searchEmployeeCatalog(scope: IEmployeeScope, query: string, skip: number, limit: number): Promise<{ docs: IProduct[]; total: number }> {
+    const filter = { $text: { $search: query }, isActive: true, ...this._employeePredicate(scope) };
+    const projection = { score: { $meta: 'textScore' } };
+    const [docs, total] = await Promise.all([
+      this._model.find(filter, projection).sort({ score: { $meta: 'textScore' } }).skip(skip).limit(limit),
+      this._model.countDocuments(filter),
+    ]);
+    return { docs, total };
+  }
+
+  async findEmployeeRelated(scope: IEmployeeScope, productId: string, categoryId: string, limit: number): Promise<IProduct[]> {
+    return this._model
+      .find({ category: categoryId, isActive: true, _id: { $ne: productId }, ...this._employeePredicate(scope) })
+      .sort({ rating: -1 })
+      .limit(limit);
+  }
+
+  async findEmployeeByIds(scope: IEmployeeScope, ids: string[]): Promise<IProduct[]> {
+    return this._model.find({ _id: { $in: ids }, isActive: true, ...this._employeePredicate(scope) });
   }
 
   async slugExists(slug: string): Promise<boolean> {
