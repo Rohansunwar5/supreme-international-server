@@ -78,18 +78,23 @@ moq: { type: Number, required: true, min: 1, default: 1 }
 `default: 1` keeps existing variants valid (no migration). Soft-enforced at cart-add and
 quotation generation; below-MOQ qty is rejected with a clear error.
 
-### 3.2 `cart` — support guest carts
-- Add `sessionId: { type: String }`; make `userId` optional.
-- Replace the single unique index with partial-unique indexes: `userId` unique when present;
-  `sessionId` unique when present.
-- `cart.service` gains a **merge** step invoked on OTP verification: guest cart (by `sessionId`)
-  merges into the user cart (dedupe by `variantId`, sum qty, re-validate MOQ), then guest cart
-  is deleted.
+### 3.2 `cart` — guest carts ALREADY EXIST (no schema change)
+**Discovered during planning:** guest carts are already implemented. Guests use a Redis-backed
+cart (`guestCartCacheManager`, keyed by `sessionId`, 7-day TTL); logged-in users use the Mongo
+`cart` model. `cart.service.mergeGuestCart(userId, sessionId)` already merges guest → user cart
+(dedupe by `variantId`, sum qty capped, live-variant validation, coupon carry-over), and
+`POST /cart/merge` already wires it. **No new cart schema/merge work is needed** — we reuse the
+existing merge. The only cart change for B2B is MOQ (below).
+
+**Cart qty cap:** the cart service currently caps qty per item at `MAX_QTY_PER_ITEM = 10`. B2B
+MOQ can exceed 10, so this cap must be raised (config-driven) or removed for B2B. MOQ is enforced
+**authoritatively at quotation generation** regardless, so the cap change is about not blocking
+buyers from adding MOQ-sized quantities to the cart.
 
 ### 3.3 New model: `quotation`
 Immutable, fully-snapshotted record (no refs/populate):
 ```
-quotationNumber   String, unique, human-readable (e.g. QT-2026-000123)
+quotationNumber   String, unique, human-readable (e.g. QT-2026-A1B2C3D4 via nanoid, mirroring orderId's `SOV-xxxx` pattern)
 user              ObjectId (verified buyer; stored as plain ObjectId, no ref)
 contact           { name, email, phoneNumber, isdCode, company? }   // snapshot
 items             [{ variantId, productId, productName, sku,
@@ -193,7 +198,8 @@ Quotation-generated and PDF-download events flow through existing `impressions` 
   quote unavailable items), surface which lines.
 - Coupon expired/invalid at generation → re-validate via `coupon.service`; if invalid, drop it
   and generate at full price (don't hard-fail).
-- Concurrent `quotationNumber` allocation → atomic counter (or nanoid suffix) to avoid collisions.
+- Concurrent `quotationNumber` allocation → nanoid suffix (`QT-YYYY-<8char>`), mirroring the
+  existing `orderId` (`SOV-<8char>`); the unique index catches the astronomically rare collision.
 - Guest-cart merge collision (same variant in both carts) → sum qty, re-check MOQ.
 
 ---
