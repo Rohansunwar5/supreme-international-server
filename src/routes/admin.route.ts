@@ -78,6 +78,23 @@ import {
   updateQuotationStatusValidator,
   listQuotationsValidator,
 } from '../middlewares/validators/quotation.validator';
+import {
+  createCompanyHandler,
+  listCompaniesHandler,
+  getCompanyHandler,
+  updateCompanyHandler,
+  inviteEmployeeHandler,
+  listEmployeesHandler,
+  resendInviteHandler,
+  updateEmployeeStatusHandler,
+} from '../controllers/admin.company.controller';
+import {
+  createCompanyValidator,
+  updateCompanyValidator,
+  inviteEmployeeValidator,
+  employeeStatusValidator,
+  companyIdValidator,
+} from '../middlewares/validators/company.validator';
 
 const adminRouter = Router();
 
@@ -146,6 +163,16 @@ adminRouter.post('/blogs', createBlogValidator, asyncHandler(createBlog));
 adminRouter.get('/blogs/:id', asyncHandler(getBlogAdmin));
 adminRouter.patch('/blogs/:id', updateBlogValidator, asyncHandler(updateBlog));
 adminRouter.delete('/blogs/:id', asyncHandler(deleteBlog));
+
+// ── Companies & Employees ──────────────────────────────────────────────────────
+adminRouter.get('/companies', asyncHandler(listCompaniesHandler));
+adminRouter.post('/companies', createCompanyValidator, asyncHandler(createCompanyHandler));
+adminRouter.get('/companies/:id', companyIdValidator, asyncHandler(getCompanyHandler));
+adminRouter.patch('/companies/:id', companyIdValidator, updateCompanyValidator, asyncHandler(updateCompanyHandler));
+adminRouter.get('/companies/:id/employees', companyIdValidator, asyncHandler(listEmployeesHandler));
+adminRouter.post('/companies/:id/employees/invite', companyIdValidator, inviteEmployeeValidator, asyncHandler(inviteEmployeeHandler));
+adminRouter.post('/employees/:id/resend-invite', companyIdValidator, asyncHandler(resendInviteHandler));
+adminRouter.patch('/employees/:id/status', companyIdValidator, employeeStatusValidator, asyncHandler(updateEmployeeStatusHandler));
 
 // ── Quotations (enquiries) ────────────────────────────────────────────────────
 // Register '/quotations/analytics' BEFORE '/quotations/:id' so it isn't captured as an :id.
