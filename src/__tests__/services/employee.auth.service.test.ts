@@ -21,6 +21,11 @@ jest.mock('../../services/auth.service', () => ({
     generateJWTToken: jest.fn().mockResolvedValue('jwt-token'),
   },
 }));
+const sendEmail = jest.fn();
+jest.mock('../../services/mail.service', () => ({
+  __esModule: true,
+  default: { sendEmail: (...a: unknown[]) => sendEmail(...a) },
+}));
 
 import employeeAuthService from '../../services/employee.auth.service';
 import authService from '../../services/auth.service';
@@ -68,5 +73,22 @@ describe('employee.auth.service', () => {
     (authService.verifyHashPassword as jest.Mock).mockResolvedValue(true);
     companyRepo.findById.mockResolvedValue({ _id: 'c1', status: 'inactive' });
     await expect(employeeAuthService.login('jo@acme.com', 'password123')).rejects.toBeInstanceOf(ForbiddenError);
+  });
+
+  it('forgotPassword emails a reset link for an active employee', async () => {
+    userRepo.getEmployeeByEmail.mockResolvedValue({ _id: 'e1', email: 'jo@acme.com', firstName: 'Jo', employeeStatus: 'active' });
+    userRepo.updateEmployeeVerificationCode.mockResolvedValue({ _id: 'e1' });
+    const out = await employeeAuthService.forgotPassword('jo@acme.com');
+    expect(userRepo.updateEmployeeVerificationCode).toHaveBeenCalled();
+    expect(sendEmail).toHaveBeenCalledWith('jo@acme.com', 'employee-reset-password.ejs', expect.objectContaining({ firstName: 'Jo' }), expect.any(String));
+    expect(out).toBe(true);
+  });
+
+  it('forgotPassword does nothing (no email) for an unknown or inactive employee', async () => {
+    userRepo.getEmployeeByEmail.mockResolvedValue(null);
+    const out = await employeeAuthService.forgotPassword('nobody@acme.com');
+    expect(userRepo.updateEmployeeVerificationCode).not.toHaveBeenCalled();
+    expect(sendEmail).not.toHaveBeenCalled();
+    expect(out).toBe(true);
   });
 });

@@ -6,7 +6,9 @@ import { UnauthorizedError } from '../errors/unauthorized.error';
 import { UserRepository } from '../repository/user.repository';
 import { CompanyRepository } from '../repository/company.repository';
 import authService from './auth.service';
+import mailService from './mail.service';
 import { sha1 } from '../utils/hash.util';
+import config from '../config';
 
 const rotateToken = customAlphabet('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789', 24);
 
@@ -54,10 +56,20 @@ class EmployeeAuthService {
 
   async forgotPassword(email: string) {
     const employee = await this._userRepository.getEmployeeByEmail(email);
-    // Do not leak existence; only act if active.
+    // Do not leak existence; only act (and email) for an active employee.
     if (employee && employee.employeeStatus === 'active') {
-      await this._userRepository.updateEmployeeVerificationCode(employee._id, sha1(rotateToken()));
-      // NOTE: email delivery of the reset link reuses mail.service in the controller-facing flow.
+      const rawToken = rotateToken();
+      await this._userRepository.updateEmployeeVerificationCode(employee._id, sha1(rawToken));
+
+      const resetLink = `${config.FRONTEND_URL}/employee/reset-password?token=${rawToken}`;
+      Promise.resolve(
+        mailService.sendEmail(
+          employee.email,
+          'employee-reset-password.ejs',
+          { firstName: employee.firstName, resetLink },
+          'Reset your password',
+        ),
+      ).catch(() => {});
     }
     return true;
   }
