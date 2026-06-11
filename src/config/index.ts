@@ -32,6 +32,7 @@ const config = {
   R2_SECRET_ACCESS_KEY: process.env.R2_SECRET_ACCESS_KEY! as string,
   R2_BUCKET_NAME: process.env.R2_BUCKET_NAME! as string,
   R2_PUBLIC_URL: process.env.R2_PUBLIC_URL! as string,
+  FRONTEND_URL: process.env.FRONTEND_URL || 'http://localhost:3000',
 
   LOW_STOCK_THRESHOLD: Number(process.env.LOW_STOCK_THRESHOLD) || 10,
   GUEST_CART_TTL_SECONDS: Number(process.env.GUEST_CART_TTL_SECONDS) || 604800,
