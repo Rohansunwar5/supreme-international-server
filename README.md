@@ -13,3 +13,12 @@ Quotation PDFs are rendered with Puppeteer (headless Chromium) and uploaded to R
 - Required env vars: `ADMIN_WHATSAPP_NUMBER` (admin number for the `wa.me` deep link) and
   optionally `MAX_CART_QTY_PER_ITEM` (per-item cart cap, defaults to 9999 to allow MOQ-sized
   quantities). See `example.env`.
+
+## Company & Employee accounts (Phase 2a)
+
+Admins create companies and invite employees (`/admin/companies`, `/admin/companies/:id/employees/invite`).
+An invite emails a tokenized activation link built from `FRONTEND_URL`
+(`<FRONTEND_URL>/employee/activate?token=...`); the employee sets a password and is auto-verified.
+Employees log in via the **separate** path `POST /auth/employee/login` (scoped to employee accounts,
+so an email can exist independently as both a B2B buyer and an employee). Required env var:
+`FRONTEND_URL`. See `example.env`.
