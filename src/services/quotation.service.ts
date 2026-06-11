@@ -3,12 +3,14 @@ import mongoose from 'mongoose';
 import config from '../config';
 import { BadRequestError } from '../errors/bad-request.error';
 import { ConflictErrorJSON } from '../errors/conflict-custom.error';
+import { NotFoundError } from '../errors/not-found.error';
+import { ForbiddenError } from '../errors/forbidden.error';
 import { QuotationRepository } from '../repository/quotation.repository';
 import { ProductVariantRepository } from '../repository/productVariant.repository';
 import cartService from './cart.service';
 import pdfService from './pdf.service';
 import { buildQuotationWhatsappUrl } from '../utils/whatsapp.util';
-import { IQuotation, IQuotationItem } from '../models/quotation.model';
+import { IQuotation, IQuotationItem, QuotationStatus } from '../models/quotation.model';
 
 const genCode = customAlphabet('ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789', 8);
 
@@ -122,6 +124,62 @@ class QuotationService {
     });
 
     return { quotationId: saved._id.toString(), quotationNumber, pdfUrl, whatsappUrl };
+  }
+
+  async getMyQuotations(userId: string, page = 1, limit = 20) {
+    const safePage = Math.max(1, page);
+    const safeLimit = Math.min(50, Math.max(1, limit));
+    const [items, total] = await Promise.all([
+      this._quotationRepository.findByUser(userId, safePage, safeLimit),
+      this._quotationRepository.countByUser(userId),
+    ]);
+    return { items, total, page: safePage, limit: safeLimit };
+  }
+
+  async getQuotationPdf(quotationId: string, requesterId: string) {
+    const q = await this._quotationRepository.findById(quotationId);
+    if (!q) throw new NotFoundError('Quotation not found');
+    if (q.user.toString() !== requesterId) throw new ForbiddenError('Not allowed to access this quotation');
+    await this._quotationRepository.incrementDownload(quotationId);
+    return { pdfUrl: q.pdfUrl, quotationNumber: q.quotationNumber };
+  }
+
+  // ---- admin ----
+  async listQuotations(filter: {
+    status?: QuotationStatus; search?: string; fromDate?: string; toDate?: string; page?: number; limit?: number;
+  }) {
+    const page = Math.max(1, Number(filter.page) || 1);
+    const limit = Math.min(50, Math.max(1, Number(filter.limit) || 20));
+    return this._quotationRepository.list({
+      status: filter.status,
+      search: filter.search,
+      fromDate: filter.fromDate ? new Date(filter.fromDate) : undefined,
+      toDate: filter.toDate ? new Date(filter.toDate) : undefined,
+      page, limit,
+    });
+  }
+
+  async getQuotation(quotationId: string) {
+    const q = await this._quotationRepository.findById(quotationId);
+    if (!q) throw new NotFoundError('Quotation not found');
+    return q;
+  }
+
+  async updateStatus(quotationId: string, status: QuotationStatus) {
+    const allowed: QuotationStatus[] = ['generated', 'sent', 'viewed', 'converted', 'archived'];
+    if (!allowed.includes(status)) throw new BadRequestError('Invalid quotation status');
+    const updated = await this._quotationRepository.updateStatus(quotationId, status);
+    if (!updated) throw new NotFoundError('Quotation not found');
+    return updated;
+  }
+
+  async quotationAnalytics() {
+    const [totalQuotations, totalDownloads, converted] = await Promise.all([
+      this._quotationRepository.totalCount(),
+      this._quotationRepository.sumDownloads(),
+      this._quotationRepository.countByStatus('converted'),
+    ]);
+    return { totalQuotations, totalDownloads, converted };
   }
 }
 
