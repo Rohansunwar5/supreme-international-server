@@ -90,7 +90,19 @@ const userSchema = new mongoose.Schema(
       url: {
         type: String,
       }
-    }
+    },
+    accountType: {
+      type: String,
+      enum: ['individual', 'employee'],
+      default: 'individual',
+    },
+    companyId: {
+      type: mongoose.Schema.Types.ObjectId,
+    },
+    employeeStatus: {
+      type: String,
+      enum: ['invited', 'active', 'deactivated'],
+    },
   },
   { timestamps: true }
 );
@@ -127,6 +139,9 @@ export interface IUser extends mongoose.Schema {
     name?: string;
     url?: string;
   }
+  accountType: 'individual' | 'employee';
+  companyId?: string;
+  employeeStatus?: 'invited' | 'active' | 'deactivated';
 }
 
 export default mongoose.model<IUser>('User', userSchema);
