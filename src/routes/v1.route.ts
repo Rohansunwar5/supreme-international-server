@@ -14,6 +14,7 @@ import userRouter from './user.route';
 import blogRouter from './blog.route';
 import quotationRouter from './quotation.route';
 import employeeAuthRouter from './employee.auth.route';
+import employeeCatalogRouter from './employee.catalog.route';
 
 const v1Router = Router();
 
@@ -22,6 +23,7 @@ v1Router.use(generalLimiter);
 v1Router.get('/', asyncHandler(helloWorld));
 v1Router.get('/health', asyncHandler(health));
 v1Router.use('/auth/employee', employeeAuthRouter);
+v1Router.use('/employee/catalog', employeeCatalogRouter);
 v1Router.use('/auth', authRouter);
 v1Router.use('/contact', contactRouter);
 v1Router.use('/catalog', catalogRouter);
