@@ -90,7 +90,7 @@ class ProductService {
     const cached = await productListCacheManager.get({ queryHash: cacheKey });
     if (cached) return cached;
 
-    const knownKeys = ['category', 'sort', 'page', 'limit', 'minPrice', 'maxPrice'];
+    const knownKeys = ['category', 'sort', 'page', 'limit', 'minPrice', 'maxPrice', 'visibility', 'ownerCompanyId'];
     const attributeFilters: Record<string, string> = {};
     for (const [k, v] of Object.entries(query)) {
       if (!knownKeys.includes(k) && typeof v === 'string') attributeFilters[k] = v;
@@ -136,7 +136,7 @@ class ProductService {
     const fetchAll = priceSortDirection !== null;
 
     const { docs, total } = await this._productRepository.findWithFilters({
-      filter: { isActive: true, categoryId, productIds },
+      filter: { isActive: true, categoryId, productIds, visibility: query.visibility as 'public' | 'company' | undefined },
       sort: { field: sortField as 'rating' | 'createdAt', direction: sortDir as 1 | -1 },
       skip: fetchAll ? 0 : skip,
       limit: fetchAll ? 0 : limit,
@@ -204,7 +204,7 @@ class ProductService {
     if (cached) return cached;
 
     const { docs } = await this._productRepository.findWithFilters({
-      filter: { isActive: true, isFeatured: true },
+      filter: { isActive: true, isFeatured: true, visibility: 'public' },
       sort: { field: 'rating', direction: -1 },
       skip: 0,
       limit: 8,
@@ -235,7 +235,7 @@ class ProductService {
     if (cached) return cached;
 
     const { docs } = await this._productRepository.findWithFilters({
-      filter: { isActive: true },
+      filter: { isActive: true, visibility: 'public' },
       sort: { field: 'rating', direction: -1 },
       skip: 0,
       limit: 8,

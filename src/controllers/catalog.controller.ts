@@ -17,7 +17,7 @@ export const listAttributes = async (req: Request, _res: Response, next: NextFun
 };
 
 export const listProducts = async (req: Request, _res: Response, next: NextFunction) => {
-  const response = await productService.listProducts(req.query as Record<string, unknown>);
+  const response = await productService.listProducts({ ...(req.query as Record<string, unknown>), visibility: 'public' });
   next(response);
 };
 

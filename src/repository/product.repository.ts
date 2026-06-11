@@ -25,6 +25,8 @@ export interface IProductFilter {
   productIds?: string[];
   isActive?: boolean;
   isFeatured?: boolean;
+  visibility?: 'public' | 'company';
+  ownerCompanyId?: string;
 }
 
 export interface IProductSort {
@@ -44,7 +46,7 @@ export class ProductRepository {
   }
 
   async findBySlug(slug: string): Promise<IProduct | null> {
-    return this._model.findOne({ slug, isActive: true });
+    return this._model.findOne({ slug, isActive: true, visibility: 'public' });
   }
 
   async findBySlugAdmin(slug: string): Promise<IProduct | null> {
@@ -68,6 +70,8 @@ export class ProductRepository {
     if (filter.isFeatured !== undefined) query.isFeatured = filter.isFeatured;
     if (filter.categoryId) query.category = filter.categoryId;
     if (filter.productIds?.length) query._id = { $in: filter.productIds };
+    if (filter.visibility) query.visibility = filter.visibility;
+    if (filter.ownerCompanyId) query.ownerCompanyId = filter.ownerCompanyId;
 
     const [docs, total] = await Promise.all([
       this._model
@@ -103,7 +107,7 @@ export class ProductRepository {
 
   async search(query: string, page: number, limit: number): Promise<{ docs: IProduct[]; total: number }> {
     const skip = (page - 1) * limit;
-    const filter = { $text: { $search: query }, isActive: true };
+    const filter = { $text: { $search: query }, isActive: true, visibility: 'public' };
     const projection = { score: { $meta: 'textScore' } };
     const [docs, total] = await Promise.all([
       this._model
@@ -118,7 +122,7 @@ export class ProductRepository {
 
   async findRelated(productId: string, categoryId: string, limit: number): Promise<IProduct[]> {
     return this._model
-      .find({ category: categoryId, isActive: true, _id: { $ne: productId } })
+      .find({ category: categoryId, isActive: true, visibility: 'public', _id: { $ne: productId } })
       .sort({ rating: -1 })
       .limit(limit);
   }
