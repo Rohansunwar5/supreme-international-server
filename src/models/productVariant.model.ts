@@ -20,6 +20,7 @@ const productVariantSchema = new mongoose.Schema(
     price: { type: Number, required: true, min: 0 },
     originalPrice: { type: Number, required: true, min: 0 },
     stock: { type: Number, required: true, min: 0, default: 0 },
+    moq: { type: Number, required: true, min: 1, default: 1 },
     images: { type: [String], default: [] },
     attributes: { type: [variantAttributeSchema], default: [] },
     variantKey: { type: String, required: true },
@@ -54,6 +55,7 @@ export interface IProductVariant extends mongoose.Document {
   price: number;
   originalPrice: number;
   stock: number;
+  moq: number;
   images: string[];
   attributes: IVariantAttribute[];
   variantKey: string;
