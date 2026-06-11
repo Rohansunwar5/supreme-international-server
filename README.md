@@ -22,3 +22,12 @@ An invite emails a tokenized activation link built from `FRONTEND_URL`
 Employees log in via the **separate** path `POST /auth/employee/login` (scoped to employee accounts,
 so an email can exist independently as both a B2B buyer and an employee). Required env var:
 `FRONTEND_URL`. See `example.env`.
+
+## Company catalog (Phase 2b)
+
+Each company has a private catalog = admin-whitelisted public products/categories
+(`PATCH /admin/companies/:id/catalog` with add/remove id deltas) plus the company's own private
+products (created via the admin catalog with `visibility: "company"` + `ownerCompanyId`). Category
+grants are live (future products in a granted category appear automatically). Employees browse it at
+the `isEmployee`-guarded `/employee/catalog/*` routes (list, detail, search, related, recently-viewed).
+Company-private products never appear in the public `/catalog/*` reads.
