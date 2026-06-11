@@ -68,8 +68,8 @@ export const listCategoriesAdmin = async (_req: Request, _res: Response, next: N
 // ── Products ─────────────────────────────────────────────────────────────────
 
 export const createProduct = async (req: Request, _res: Response, next: NextFunction) => {
-  const { name, slug, description, details, materials, shipping, categoryId, images, badge, isFeatured } = req.body;
-  const response = await productService.createProduct({ name, slug, description, details, materials, shipping, categoryId, images, badge, isFeatured });
+  const { name, slug, description, details, materials, shipping, categoryId, images, badge, isFeatured, visibility, ownerCompanyId } = req.body;
+  const response = await productService.createProduct({ name, slug, description, details, materials, shipping, categoryId, images, badge, isFeatured, visibility, ownerCompanyId });
   next(response);
 };
 

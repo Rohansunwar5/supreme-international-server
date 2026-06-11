@@ -3,6 +3,7 @@ import { NotFoundError } from '../../errors/not-found.error';
 import { ProductRepository, ICreateProductParams, IUpdateProductParams } from '../../repository/product.repository';
 import { ProductVariantRepository } from '../../repository/productVariant.repository';
 import { CategoryRepository } from '../../repository/category.repository';
+import { CompanyRepository } from '../../repository/company.repository';
 import { productDetailCacheManager, productListCacheManager } from '../cache/entities';
 import attributeService from './attribute.service';
 import crypto from 'crypto';
@@ -20,6 +21,7 @@ class ProductService {
     private readonly _productRepository: ProductRepository,
     private readonly _variantRepository: ProductVariantRepository,
     private readonly _categoryRepository: CategoryRepository,
+    private readonly _companyRepository: CompanyRepository,
   ) {}
 
   async createProduct(params: {
@@ -33,6 +35,8 @@ class ProductService {
     images?: string[];
     badge?: { label: string; variant: 'primary' | 'accent' } | null;
     isFeatured?: boolean;
+    visibility?: 'public' | 'company';
+    ownerCompanyId?: string;
   }) {
     const slug = params.slug ? slugify(params.slug) : slugify(params.name);
 
@@ -43,6 +47,15 @@ class ProductService {
 
     const category = await this._categoryRepository.findById(params.categoryId);
     if (!category) throw new NotFoundError('Category not found');
+
+    const visibility = params.visibility ?? 'public';
+    let ownerCompanyId: string | undefined;
+    if (visibility === 'company') {
+      if (!params.ownerCompanyId) throw new BadRequestError('ownerCompanyId is required for a company-private product');
+      const owner = await this._companyRepository.findById(params.ownerCompanyId);
+      if (!owner) throw new BadRequestError('Owner company not found');
+      ownerCompanyId = params.ownerCompanyId;
+    }
 
     const createParams: ICreateProductParams = {
       name: params.name,
@@ -55,6 +68,8 @@ class ProductService {
       images: params.images,
       badge: params.badge,
       isFeatured: params.isFeatured,
+      visibility,
+      ownerCompanyId,
     };
 
     const product = await this._productRepository.create(createParams);
@@ -336,4 +351,5 @@ export default new ProductService(
   new ProductRepository(),
   new ProductVariantRepository(),
   new CategoryRepository(),
+  new CompanyRepository(),
 );

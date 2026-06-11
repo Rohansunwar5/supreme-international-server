@@ -11,6 +11,8 @@ export interface ICreateProductParams {
   images?: string[];
   badge?: { label: string; variant: 'primary' | 'accent' } | null;
   isFeatured?: boolean;
+  visibility?: 'public' | 'company';
+  ownerCompanyId?: string;
 }
 
 export interface IUpdateProductParams extends Partial<ICreateProductParams> {

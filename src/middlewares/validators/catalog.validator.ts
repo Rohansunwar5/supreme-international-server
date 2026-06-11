@@ -46,6 +46,8 @@ export const createProductValidator = [
   check('badge.label').if(check('badge').exists({ checkNull: false })).notEmpty().withMessage('badge.label is required'),
   check('badge.variant').if(check('badge').exists({ checkNull: false })).isIn(['primary', 'accent']).withMessage('badge.variant must be primary or accent'),
   check('isFeatured').optional().isBoolean().withMessage('isFeatured must be boolean'),
+  check('visibility').optional().isIn(['public', 'company']).withMessage('Invalid visibility'),
+  check('ownerCompanyId').if(check('visibility').equals('company')).isMongoId().withMessage('ownerCompanyId must be a valid id for a company-private product'),
   ...validateRequest,
 ];
 
