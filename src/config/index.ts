@@ -44,6 +44,8 @@ const config = {
   FREE_SHIPPING_THRESHOLD: Number(process.env.FREE_SHIPPING_THRESHOLD) || 20000,
   STANDARD_SHIPPING_CHARGE: Number(process.env.STANDARD_SHIPPING_CHARGE) || 499,
   SHIPPING_TAX_RATE: 0.18,
+
+  ADMIN_WHATSAPP_NUMBER: process.env.ADMIN_WHATSAPP_NUMBER! as string,
 };
 
 export default config;
