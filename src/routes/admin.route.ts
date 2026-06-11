@@ -76,6 +76,7 @@ import {
 import {
   quotationIdValidator,
   updateQuotationStatusValidator,
+  listQuotationsValidator,
 } from '../middlewares/validators/quotation.validator';
 
 const adminRouter = Router();
@@ -148,7 +149,7 @@ adminRouter.delete('/blogs/:id', asyncHandler(deleteBlog));
 
 // ── Quotations (enquiries) ────────────────────────────────────────────────────
 // Register '/quotations/analytics' BEFORE '/quotations/:id' so it isn't captured as an :id.
-adminRouter.get('/quotations', asyncHandler(listQuotations));
+adminRouter.get('/quotations', listQuotationsValidator, asyncHandler(listQuotations));
 adminRouter.get('/quotations/analytics', asyncHandler(quotationAnalytics));
 adminRouter.get('/quotations/:id', quotationIdValidator, asyncHandler(getQuotation));
 adminRouter.patch('/quotations/:id/status', quotationIdValidator, updateQuotationStatusValidator, asyncHandler(updateQuotationStatus));

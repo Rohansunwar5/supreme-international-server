@@ -13,3 +13,11 @@ export const updateQuotationStatusValidator = [
     .withMessage('Invalid quotation status'),
   ...validateRequest,
 ];
+
+export const listQuotationsValidator = [
+  check('status')
+    .optional()
+    .isIn(['generated', 'sent', 'viewed', 'converted', 'archived'])
+    .withMessage('Invalid quotation status'),
+  ...validateRequest,
+];
