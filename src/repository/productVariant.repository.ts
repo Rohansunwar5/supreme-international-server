@@ -7,6 +7,7 @@ export interface ICreateVariantParams {
   price: number;
   originalPrice: number;
   stock: number;
+  moq?: number;
   images?: string[];
   attributes: {
     attributeId: string;
@@ -61,7 +62,7 @@ export class ProductVariantRepository {
 
   async update(
     id: string,
-    params: Partial<Pick<ICreateVariantParams, 'price' | 'originalPrice' | 'stock' | 'images' | 'sku'> & { isActive: boolean }>,
+    params: Partial<Pick<ICreateVariantParams, 'price' | 'originalPrice' | 'stock' | 'moq' | 'images' | 'sku'> & { isActive: boolean }>,
   ): Promise<IProductVariant | null> {
     return this._model.findByIdAndUpdate(id, params, { new: true });
   }

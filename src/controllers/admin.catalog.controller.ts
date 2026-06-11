@@ -101,8 +101,8 @@ export const listProductsAdmin = async (req: Request, _res: Response, next: Next
 
 export const createVariant = async (req: Request, _res: Response, next: NextFunction) => {
   const { id: productId } = req.params;
-  const { sku, price, originalPrice, stock, images, attributes } = req.body;
-  const response = await productVariantService.createVariant(productId, { sku, price, originalPrice, stock, images, attributes });
+  const { sku, price, originalPrice, stock, moq, images, attributes } = req.body;
+  const response = await productVariantService.createVariant(productId, { sku, price, originalPrice, stock, moq, images, attributes });
   next(response);
 };
 
@@ -115,8 +115,8 @@ export const bulkCreateVariants = async (req: Request, _res: Response, next: Nex
 
 export const updateVariant = async (req: Request, _res: Response, next: NextFunction) => {
   const { id } = req.params;
-  const { price, originalPrice, stock, images, sku, isActive } = req.body;
-  const response = await productVariantService.updateVariant(id, { price, originalPrice, stock, images, sku, isActive });
+  const { price, originalPrice, stock, moq, images, sku, isActive } = req.body;
+  const response = await productVariantService.updateVariant(id, { price, originalPrice, stock, moq, images, sku, isActive });
   next(response);
 };
 
