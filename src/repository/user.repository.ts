@@ -20,7 +20,7 @@ export class UserRepository {
   private _model = userModel;
 
   async getUserByEmailId(email: string): Promise<IUser | null> {
-    return this._model.findOne({ email });
+    return this._model.findOne({ email, accountType: { $ne: 'employee' } });
   }
 
   async onBoardUser(params: IOnBoardUserParams): Promise<IUser> {
@@ -102,6 +102,72 @@ export class UserRepository {
       verified: false,
       password: null,
     }, { new: true });
+  }
+
+  async getEmployeeByEmail(email: string): Promise<IUser | null> {
+    return this._model.findOne({ email, accountType: 'employee' });
+  }
+
+  async createEmployee(params: {
+    firstName: string;
+    lastName?: string;
+    isdCode?: string;
+    phoneNumber?: string;
+    email: string;
+    companyId: string;
+    verificationCode: string;
+  }): Promise<IUser> {
+    return this._model.create({
+      firstName: params.firstName,
+      lastName: params.lastName,
+      isdCode: params.isdCode,
+      phoneNumber: params.phoneNumber,
+      email: params.email,
+      companyId: params.companyId,
+      verificationCode: params.verificationCode,
+      verified: false,
+      accountType: 'employee',
+      employeeStatus: 'invited',
+      img: { link: 'default-profile.png', source: 'bucket' },
+    });
+  }
+
+  async findEmployeeById(id: string): Promise<IUser | null> {
+    return this._model.findOne({ _id: id, accountType: 'employee' });
+  }
+
+  async findEmployeesByCompany(companyId: string, status?: string): Promise<IUser[]> {
+    const query: Record<string, unknown> = { companyId, accountType: 'employee' };
+    if (status) query.employeeStatus = status;
+    return this._model.find(query).sort({ createdAt: -1 });
+  }
+
+  async getEmployeeWithVerificationCode(hashedCode: string): Promise<IUser | null> {
+    return this._model.findOne({ verificationCode: hashedCode, accountType: 'employee' });
+  }
+
+  async setEmployeeStatus(id: string, employeeStatus: 'active' | 'deactivated'): Promise<IUser | null> {
+    return this._model.findOneAndUpdate(
+      { _id: id, accountType: 'employee' },
+      { employeeStatus },
+      { new: true },
+    );
+  }
+
+  async activateEmployee(id: string, hashedPassword: string, newVerificationCode: string): Promise<IUser | null> {
+    return this._model.findOneAndUpdate(
+      { _id: id, accountType: 'employee' },
+      { password: hashedPassword, verified: true, employeeStatus: 'active', verificationCode: newVerificationCode },
+      { new: true },
+    );
+  }
+
+  async updateEmployeeVerificationCode(id: string, verificationCode: string): Promise<IUser | null> {
+    return this._model.findOneAndUpdate(
+      { _id: id, accountType: 'employee' },
+      { verificationCode },
+      { new: true },
+    );
   }
 
 }
