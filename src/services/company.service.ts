@@ -8,7 +8,6 @@ import mailService from './mail.service';
 import { sha1 } from '../utils/hash.util';
 import config from '../config';
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const inviteToken = customAlphabet('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789', 24);
 
 const slugify = (text: string) =>
@@ -62,6 +61,67 @@ class CompanyService {
     return this._companyRepository.update(id, params);
   }
 
+  async inviteEmployee(
+    companyId: string,
+    params: { firstName: string; lastName?: string; isdCode?: string; phoneNumber?: string; email: string },
+  ) {
+    const company = await this._companyRepository.findById(companyId);
+    if (!company) throw new NotFoundError('Company not found');
+    if (company.status !== 'active') throw new BadRequestError('Cannot invite into an inactive company');
+
+    const existing = await this._userRepository.getEmployeeByEmail(params.email);
+    if (existing) throw new ConflictError('An employee with this email already exists');
+
+    const rawToken = inviteToken();
+    const employee = await this._userRepository.createEmployee({
+      firstName: params.firstName,
+      lastName: params.lastName,
+      isdCode: params.isdCode,
+      phoneNumber: params.phoneNumber,
+      email: params.email,
+      companyId,
+      verificationCode: sha1(rawToken),
+    });
+
+    this._sendInviteEmail(params.email, company.name, rawToken);
+    return employee;
+  }
+
+  async listEmployees(companyId: string, status?: string) {
+    const company = await this._companyRepository.findById(companyId);
+    if (!company) throw new NotFoundError('Company not found');
+    return this._userRepository.findEmployeesByCompany(companyId, status);
+  }
+
+  async setEmployeeStatus(employeeId: string, status: 'active' | 'deactivated') {
+    const employee = await this._userRepository.findEmployeeById(employeeId);
+    if (!employee) throw new NotFoundError('Employee not found');
+    const updated = await this._userRepository.setEmployeeStatus(employeeId, status);
+    if (!updated) throw new NotFoundError('Employee not found');
+    return updated;
+  }
+
+  async resendInvite(employeeId: string) {
+    const employee = await this._userRepository.findEmployeeById(employeeId);
+    if (!employee) throw new NotFoundError('Employee not found');
+    if (employee.employeeStatus !== 'invited') throw new BadRequestError('Employee has already activated');
+
+    const company = await this._companyRepository.findById(employee.companyId as string);
+    if (!company) throw new NotFoundError('Company not found');
+
+    const rawToken = inviteToken();
+    await this._userRepository.updateEmployeeVerificationCode(employeeId, sha1(rawToken));
+    this._sendInviteEmail(employee.email, company.name, rawToken);
+    return true;
+  }
+
+  private _sendInviteEmail(email: string, companyName: string, rawToken: string) {
+    const activationLink = `${config.FRONTEND_URL}/employee/activate?token=${rawToken}`;
+    Promise.resolve(
+      mailService.sendEmail(email, 'employee-invite.ejs', { companyName, activationLink }, `You're invited to ${companyName}`),
+    ).catch(() => {});
+  }
+
   private async _allocateSlug(base: string): Promise<string> {
     if (!(await this._companyRepository.slugExists(base))) return base;
     let n = 1;
@@ -75,7 +135,3 @@ class CompanyService {
 }
 
 export default new CompanyService(new CompanyRepository(), new UserRepository());
-
-// Forward-looking symbols consumed by Task 7 invite methods.
-// Exporting them keeps TypeScript happy while avoiding unused-var lint errors.
-export { ConflictError, mailService, sha1, config, inviteToken };
