@@ -24,7 +24,7 @@ class ProductVariantService {
     private readonly _attributeRepository: AttributeRepository,
   ) {}
 
-  assertMoq(moq: number): void {
+  assertMoq(moq: number | undefined): void {
     if (moq !== undefined && (!Number.isInteger(moq) || moq < 1)) {
       throw new BadRequestError('moq must be an integer >= 1');
     }
@@ -42,7 +42,7 @@ class ProductVariantService {
       attributes: { attributeId: string; valueId: string }[];
     },
   ) {
-    this.assertMoq(params.moq as number);
+    this.assertMoq(params.moq);
 
     const product = await this._productRepository.findById(productId);
     if (!product) throw new NotFoundError('Product not found');
@@ -155,7 +155,7 @@ class ProductVariantService {
       isActive?: boolean;
     },
   ) {
-    this.assertMoq(params.moq as number);
+    this.assertMoq(params.moq);
 
     const variant = await this._variantRepository.findById(id);
     if (!variant) throw new NotFoundError('Variant not found');

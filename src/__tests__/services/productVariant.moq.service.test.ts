@@ -10,6 +10,10 @@ describe('variant service moq passthrough', () => {
   });
 
   it('accepts undefined moq (optional)', () => {
-    expect(() => variantService.assertMoq(undefined as unknown as number)).not.toThrow();
+    expect(() => variantService.assertMoq(undefined)).not.toThrow();
+  });
+
+  it('rejects a non-integer moq', () => {
+    expect(() => variantService.assertMoq(1.5)).toThrow();
   });
 });
