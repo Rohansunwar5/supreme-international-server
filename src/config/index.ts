@@ -35,6 +35,7 @@ const config = {
 
   LOW_STOCK_THRESHOLD: Number(process.env.LOW_STOCK_THRESHOLD) || 10,
   GUEST_CART_TTL_SECONDS: Number(process.env.GUEST_CART_TTL_SECONDS) || 604800,
+  MAX_CART_QTY_PER_ITEM: Number(process.env.MAX_CART_QTY_PER_ITEM) || 9999,
 
   RAZORPAY_KEY_ID: process.env.RAZORPAY_KEY_ID! as string,
   RAZORPAY_KEY_SECRET: process.env.RAZORPAY_KEY_SECRET! as string,
