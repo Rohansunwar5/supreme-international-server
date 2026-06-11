@@ -2,6 +2,7 @@ import { NotFoundError } from '../errors/not-found.error';
 import { CompanyCatalogRepository } from '../repository/companyCatalog.repository';
 import { ProductRepository, IEmployeeScope, IProductSort } from '../repository/product.repository';
 import { ProductVariantRepository } from '../repository/productVariant.repository';
+import { recentlyViewedUserCacheManager } from './cache/entities';
 
 const summarize = (p: { _id: unknown; name: string; slug: string; images: string[]; badge: unknown; rating: number; totalReviews: number }, price?: { minPrice: number; originalMinPrice: number }) => ({
   _id: p._id,
@@ -65,6 +66,40 @@ class EmployeeCatalogService {
 
     const variants = await this._variantRepository.findByProductId(product._id.toString(), true);
     return { product, variants };
+  }
+
+  async searchProducts(companyId: string, query: string, page: number, limit: number) {
+    const safePage = Math.max(1, page);
+    const safeLimit = Math.min(50, Math.max(1, limit));
+    if (!query?.trim()) return { products: [], pagination: { total: 0, page: safePage, limit: safeLimit, pages: 0 } };
+
+    const scope = await this._scope(companyId);
+    const { docs, total } = await this._productRepository.searchEmployeeCatalog(scope, query.trim(), (safePage - 1) * safeLimit, safeLimit);
+    const products = await this._withPrices(docs);
+    return { products, pagination: { total, page: safePage, limit: safeLimit, pages: Math.ceil(total / safeLimit) } };
+  }
+
+  async getRelated(companyId: string, slug: string, limit = 6) {
+    const scope = await this._scope(companyId);
+    const product = await this._productRepository.findEmployeeProductBySlug(scope, slug);
+    if (!product) return [];
+
+    const related = await this._productRepository.findEmployeeRelated(scope, product._id.toString(), product.category.toString(), limit);
+    return this._withPrices(related);
+  }
+
+  async getRecentlyViewed(companyId: string, userId: string) {
+    const ids = (await recentlyViewedUserCacheManager.get({ userId })) ?? [];
+    if (!ids.length) return { products: [] };
+
+    const scope = await this._scope(companyId);
+    const inScope = await this._productRepository.findEmployeeByIds(scope, ids);
+    const byId = new Map(inScope.map(p => [p._id.toString(), p]));
+
+    // Preserve recency order, drop out-of-scope ids.
+    const ordered = ids.map(id => byId.get(id)).filter((p): p is NonNullable<typeof p> => !!p);
+    const products = await this._withPrices(ordered);
+    return { products };
   }
 }
 
