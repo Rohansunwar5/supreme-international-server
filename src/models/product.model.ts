@@ -24,6 +24,8 @@ const productSchema = new mongoose.Schema(
     totalPurchases: { type: Number, default: 0, min: 0 },
     isActive: { type: Boolean, default: true },
     isFeatured: { type: Boolean, default: false },
+    visibility: { type: String, enum: ['public', 'company'], default: 'public' },
+    ownerCompanyId: { type: mongoose.Schema.Types.ObjectId },
   },
   { timestamps: true },
 );
@@ -37,6 +39,7 @@ productSchema.index(
   { name: 'text', description: 'text', details: 'text' },
   { weights: { name: 10, description: 3, details: 1 }, name: 'product_text_search' },
 );
+productSchema.index({ visibility: 1, ownerCompanyId: 1 });
 
 export interface IProductBadge {
   label: string;
@@ -59,6 +62,8 @@ export interface IProduct extends mongoose.Document {
   totalPurchases: number;
   isActive: boolean;
   isFeatured: boolean;
+  visibility: 'public' | 'company';
+  ownerCompanyId?: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
 }
