@@ -47,3 +47,15 @@ export const employeeResetPasswordValidator = [
   check('password').isString().isLength({ min: 8 }).withMessage('Password must be at least 8 characters'),
   ...validateRequest,
 ];
+
+export const updateCompanyCatalogValidator = [
+  check('addProductIds').optional().isArray().withMessage('addProductIds must be an array'),
+  check('addProductIds.*').optional().isMongoId(),
+  check('removeProductIds').optional().isArray().withMessage('removeProductIds must be an array'),
+  check('removeProductIds.*').optional().isMongoId(),
+  check('addCategoryIds').optional().isArray().withMessage('addCategoryIds must be an array'),
+  check('addCategoryIds.*').optional().isMongoId(),
+  check('removeCategoryIds').optional().isArray().withMessage('removeCategoryIds must be an array'),
+  check('removeCategoryIds.*').optional().isMongoId(),
+  ...validateRequest,
+];

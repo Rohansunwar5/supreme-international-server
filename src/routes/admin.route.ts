@@ -94,7 +94,13 @@ import {
   inviteEmployeeValidator,
   employeeStatusValidator,
   companyIdValidator,
+  updateCompanyCatalogValidator,
 } from '../middlewares/validators/company.validator';
+import {
+  getCatalogHandler,
+  updateCatalogHandler,
+  listCompanyProductsHandler,
+} from '../controllers/admin.companyCatalog.controller';
 
 const adminRouter = Router();
 
@@ -173,6 +179,9 @@ adminRouter.get('/companies/:id/employees', companyIdValidator, asyncHandler(lis
 adminRouter.post('/companies/:id/employees/invite', companyIdValidator, inviteEmployeeValidator, asyncHandler(inviteEmployeeHandler));
 adminRouter.post('/employees/:id/resend-invite', companyIdValidator, asyncHandler(resendInviteHandler));
 adminRouter.patch('/employees/:id/status', companyIdValidator, employeeStatusValidator, asyncHandler(updateEmployeeStatusHandler));
+adminRouter.get('/companies/:id/catalog', companyIdValidator, asyncHandler(getCatalogHandler));
+adminRouter.patch('/companies/:id/catalog', companyIdValidator, updateCompanyCatalogValidator, asyncHandler(updateCatalogHandler));
+adminRouter.get('/companies/:id/products', companyIdValidator, asyncHandler(listCompanyProductsHandler));
 
 // ── Quotations (enquiries) ────────────────────────────────────────────────────
 // Register '/quotations/analytics' BEFORE '/quotations/:id' so it isn't captured as an :id.
