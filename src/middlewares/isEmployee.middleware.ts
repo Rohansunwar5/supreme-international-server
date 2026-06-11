@@ -18,6 +18,7 @@ const requireEmployee = async (req: Request, _res: Response, next: NextFunction)
     const company = await companyRepository.findById(employee.companyId as string);
     if (!company || company.status !== 'active') return next(new ForbiddenError('COMPANY_INACTIVE'));
 
+    req.companyId = employee.companyId as string;
     return next();
   } catch (err) {
     return next(err);

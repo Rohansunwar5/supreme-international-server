@@ -42,4 +42,12 @@ describe('isEmployee middleware', () => {
     const err = await run({ user: { _id: 'e1' } });
     expect(err).toBeInstanceOf(ForbiddenError);
   });
+
+  it('attaches companyId to the request for an active employee', async () => {
+    findEmployeeById.mockResolvedValue({ _id: 'e1', accountType: 'employee', employeeStatus: 'active', companyId: 'c1' });
+    companyFindById.mockResolvedValue({ _id: 'c1', status: 'active' });
+    const req: { user: { _id: string }; companyId?: string } = { user: { _id: 'e1' } };
+    await new Promise((resolve) => requireEmployee(req as never, {} as never, () => resolve(undefined)));
+    expect(req.companyId).toBe('c1');
+  });
 });

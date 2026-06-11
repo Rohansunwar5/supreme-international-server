@@ -7,6 +7,7 @@ declare namespace Express {
       _id: string,
     },
     sessionId: string,
+    companyId?: string,
     access_token: string | null,
     rawBody?: Buffer,
   }
