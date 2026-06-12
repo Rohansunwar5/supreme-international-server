@@ -10,6 +10,7 @@ interface IValidateCouponParams {
   cartSubtotal: number;
   cartItems: { productId: string }[];
   userId?: string;
+  companyId?: string;
 }
 
 interface IValidateCouponResult {
@@ -27,6 +28,15 @@ class CouponService {
   async validateAndComputeDiscount(params: IValidateCouponParams): Promise<IValidateCouponResult> {
     const coupon = await this._couponRepository.findByCode(params.code);
     if (!coupon || !coupon.isActive) throw new BadRequestError('Invalid or inactive coupon code');
+
+    const couponCompanyId = coupon.companyId ? coupon.companyId.toString() : null;
+    if (params.companyId) {
+      // Employee checkout: only this company's coupons are valid.
+      if (couponCompanyId !== params.companyId) throw new BadRequestError('This coupon is not valid for your company');
+    } else if (couponCompanyId) {
+      // Standard checkout: company-scoped coupons are not allowed.
+      throw new BadRequestError('Invalid or inactive coupon code');
+    }
 
     const now = new Date();
     if (now < coupon.startsAt) throw new BadRequestError('Coupon is not yet active');

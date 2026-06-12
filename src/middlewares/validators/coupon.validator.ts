@@ -18,6 +18,7 @@ export const createCouponValidator = [
   check('perUserLimit').optional().isInt({ min: 0 }).withMessage('perUserLimit must be a non-negative integer'),
   check('applicableCategories').optional().isArray().withMessage('applicableCategories must be an array'),
   check('applicableProducts').optional().isArray().withMessage('applicableProducts must be an array'),
+  check('companyId').optional().isMongoId().withMessage('companyId must be a valid id'),
   ...validateRequest,
 ];
 
@@ -30,5 +31,6 @@ export const updateCouponValidator = [
   check('maxDiscountAmount').optional().isFloat({ min: 0 }).withMessage('maxDiscountAmount must be non-negative'),
   check('usageLimit').optional().isInt({ min: 0 }).withMessage('usageLimit must be a non-negative integer'),
   check('perUserLimit').optional().isInt({ min: 0 }).withMessage('perUserLimit must be a non-negative integer'),
+  check('companyId').optional().isMongoId().withMessage('companyId must be a valid id'),
   ...validateRequest,
 ];
