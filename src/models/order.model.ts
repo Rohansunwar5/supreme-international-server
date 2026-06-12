@@ -33,8 +33,8 @@ export interface IBilling {
 }
 
 export interface IPayment {
-  gateway: 'razorpay';
-  razorpayOrderId: string;
+  gateway: 'razorpay' | 'wallet';
+  razorpayOrderId: string | null;
   razorpayPaymentId: string | null;
   razorpaySignature: string | null;
   status: 'pending' | 'paid' | 'failed' | 'refunded';
@@ -73,6 +73,10 @@ export interface IOrder extends mongoose.Document {
   shippingAddress: IShippingAddress;
   billing: IBilling;
   couponId: mongoose.Types.ObjectId | null;
+  employeeId?: mongoose.Types.ObjectId;
+  companyId?: mongoose.Types.ObjectId;
+  orderType: 'standard' | 'employee';
+  walletApplied: number;
   payment: IPayment;
   status: OrderStatus;
   timeline: ITimelineEntry[];
@@ -125,7 +129,7 @@ const billingSchema = new mongoose.Schema<IBilling>(
 const paymentSchema = new mongoose.Schema<IPayment>(
   {
     gateway: { type: String, default: 'razorpay' },
-    razorpayOrderId: { type: String, required: true },
+    razorpayOrderId: { type: String, default: null },
     razorpayPaymentId: { type: String, default: null },
     razorpaySignature: { type: String, default: null },
     status: {
@@ -174,6 +178,10 @@ const orderSchema = new mongoose.Schema<IOrder>(
     shippingAddress: { type: shippingAddressSchema, required: true },
     billing: { type: billingSchema, required: true },
     couponId: { type: mongoose.Schema.Types.ObjectId, default: null },
+    employeeId: { type: mongoose.Schema.Types.ObjectId, default: undefined },
+    companyId: { type: mongoose.Schema.Types.ObjectId, default: undefined },
+    orderType: { type: String, enum: ['standard', 'employee'], default: 'standard' },
+    walletApplied: { type: Number, default: 0, min: 0 },
     payment: { type: paymentSchema, required: true },
     status: {
       type: String,
