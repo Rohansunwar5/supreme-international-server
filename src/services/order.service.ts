@@ -9,6 +9,7 @@ import { guestCartCacheManager } from './cache/entities';
 import { verifyWebhookSignature } from '../utils/razorpay.util';
 import { OrderStatus, ITrackingInfo } from '../models/order.model';
 import couponService from './coupon.service';
+import walletService from './wallet.service';
 import mailService from './mail.service';
 
 class OrderService {
@@ -30,7 +31,8 @@ class OrderService {
       const failedEntity = ((payload.payload as any)?.payment?.entity ?? {}) as Record<string, string>;
       const failedRazorpayOrderId = failedEntity['order_id'];
       if (failedRazorpayOrderId) {
-        await this._orderRepository.markPaymentFailed(failedRazorpayOrderId);
+        const failedOrder = await this._orderRepository.markPaymentFailed(failedRazorpayOrderId);
+        if (failedOrder) await this._refundReservedWallet(failedOrder);
       }
       return { received: true };
     }
@@ -138,7 +140,28 @@ class OrderService {
       );
     }
 
+    await this._refundReservedWallet(order);
+
     return cancelled;
+  }
+
+  private async _refundReservedWallet(order: {
+    orderId: string;
+    orderType?: string;
+    walletApplied?: number;
+    employeeId?: { toString(): string } | null;
+    companyId?: { toString(): string } | null;
+  }) {
+    if (order.orderType !== 'employee' || !order.walletApplied || order.walletApplied <= 0) return;
+    if (!order.employeeId || !order.companyId) return;
+    await walletService.credit(
+      order.employeeId.toString(),
+      order.companyId.toString(),
+      order.walletApplied,
+      `Refund for order ${order.orderId}`,
+      undefined,
+      { source: 'refund', referenceId: order.orderId },
+    );
   }
 
   async adminListOrders(filter: {
