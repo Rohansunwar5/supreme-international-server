@@ -30,6 +30,8 @@ interface ICartItemDisplay {
   currentPrice: number;
   priceChanged: boolean;
   qty: number;
+  moq: number;
+  belowMoq: boolean;
 }
 
 interface ICartResponse {
@@ -40,6 +42,7 @@ interface ICartResponse {
   total: number;
   itemCount: number;
   hasPriceChanges: boolean;
+  hasMoqViolations: boolean;
 }
 
 class CartService {
@@ -326,14 +329,19 @@ class CartService {
     coupon: { code: string; discountAmount: number; couponId: string } | { code: string; discountAmount: number; couponId: mongoose.Types.ObjectId } | null,
   ): Promise<ICartResponse> {
     const variantIds = items.map(i => i.variantId);
-    const currentPrices = await this._fetchCurrentPrices(variantIds);
+    const liveMeta = await this._fetchLiveVariantMeta(variantIds);
 
     const displayItems: ICartItemDisplay[] = items.map(item => {
-      const currentPrice = currentPrices.get(item.variantId) ?? item.priceSnapshot;
+      const meta = liveMeta.get(item.variantId);
+      const currentPrice = meta?.price ?? item.priceSnapshot;
+      // Unavailable variants have no known MOQ; default to 1 so they never falsely flag.
+      const moq = meta?.moq ?? 1;
       return {
         ...item,
         currentPrice,
         priceChanged: currentPrice !== item.priceSnapshot,
+        moq,
+        belowMoq: item.qty < moq,
       };
     });
 
@@ -349,15 +357,16 @@ class CartService {
       total,
       itemCount: items.reduce((sum, i) => sum + i.qty, 0),
       hasPriceChanges: displayItems.some(i => i.priceChanged),
+      hasMoqViolations: displayItems.some(i => i.belowMoq),
     };
   }
 
-  private async _fetchCurrentPrices(variantIds: string[]): Promise<Map<string, number>> {
-    const map = new Map<string, number>();
+  private async _fetchLiveVariantMeta(variantIds: string[]): Promise<Map<string, { price: number; moq: number }>> {
+    const map = new Map<string, { price: number; moq: number }>();
     if (!variantIds.length) return map;
 
     const variants = await this._variantRepository.findByIds(variantIds);
-    for (const v of variants) map.set(v._id.toString(), v.price);
+    for (const v of variants) map.set(v._id.toString(), { price: v.price, moq: v.moq });
 
     return map;
   }
