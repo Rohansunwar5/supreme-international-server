@@ -6,6 +6,7 @@ import { ProductRepository } from '../repository/product.repository';
 import { ProductVariantRepository } from '../repository/productVariant.repository';
 import { CompanyCatalogRepository } from '../repository/companyCatalog.repository';
 import { OrderRepository } from '../repository/order.repository';
+import { CouponUsageRepository } from '../repository/couponUsage.repository';
 import walletService from './wallet.service';
 import couponService from './coupon.service';
 import { createRazorpayOrder } from '../utils/razorpay.util';
@@ -27,6 +28,7 @@ class EmployeeCheckoutService {
     private readonly _variantRepository: ProductVariantRepository,
     private readonly _catalogRepository: CompanyCatalogRepository,
     private readonly _orderRepository: OrderRepository,
+    private readonly _couponUsageRepository: CouponUsageRepository,
   ) {}
 
   async checkout(employeeId: string, companyId: string, body: IEmployeeCheckoutBody) {
@@ -138,6 +140,15 @@ class EmployeeCheckoutService {
         });
         // Confirm immediately: decrement stock + clear the cart (no webhook will arrive).
         await Promise.all(orderItems.map(i => this._variantRepository.adjustStock(i.variantId.toString(), -i.qty)));
+        // Record coupon usage here too — wallet-only orders never reach the payment
+        // webhook, so without this a company coupon's usageLimit/perUserLimit would
+        // never decrement and could be redeemed an unlimited number of times.
+        if (couponId) {
+          await Promise.all([
+            this._couponUsageRepository.create({ couponId, userId: employeeId, orderId }),
+            couponService.incrementUsage(couponId),
+          ]);
+        }
         await this._cartRepository.clearItems(employeeId);
         return { orderId, walletApplied, remainder: 0, fullyPaidByWallet: true };
       }
@@ -180,4 +191,5 @@ export default new EmployeeCheckoutService(
   new ProductVariantRepository(),
   new CompanyCatalogRepository(),
   new OrderRepository(),
+  new CouponUsageRepository(),
 );
