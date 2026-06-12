@@ -31,3 +31,12 @@ products (created via the admin catalog with `visibility: "company"` + `ownerCom
 grants are live (future products in a granted category appear automatically). Employees browse it at
 the `isEmployee`-guarded `/employee/catalog/*` routes (list, detail, search, related, recently-viewed).
 Company-private products never appear in the public `/catalog/*` reads.
+
+## Employee wallet (Phase 2c)
+
+Each employee has a wallet with a credit balance (INR). Admins top-up or adjust it
+(`POST /admin/employees/:id/wallet/credit` and `.../debit`, each requiring `{ amount, reason }`);
+every change is an immutable ledger entry stamped with the resulting balance. Debits are guarded so
+a balance can never go negative. Employees view their own balance/history at `/employee/wallet` and
+`/employee/wallet/ledger` (behind `isEmployee`). Credits never expire. Spending credits at checkout
+arrives in Phase 2d.
