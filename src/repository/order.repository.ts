@@ -11,6 +11,11 @@ export interface ICreateOrderParams {
   billing: IBilling;
   couponId?: string | null;
   payment: IPayment;
+  employeeId?: string | null;
+  companyId?: string | null;
+  orderType?: 'standard' | 'employee';
+  walletApplied?: number;
+  status?: OrderStatus;
 }
 
 export class OrderRepository {
