@@ -125,6 +125,20 @@ export class OrderRepository {
     );
   }
 
+  /**
+   * Atomically claims the wallet refund for an employee order. Returns the order
+   * only to the first caller that flips walletRefundedAt from null; all subsequent
+   * callers (a concurrent cancel + a payment.failed webhook on the same order) get
+   * null and must NOT re-credit. This is the at-most-once guard for wallet refunds.
+   */
+  async markWalletRefunded(orderId: string) {
+    return this._model.findOneAndUpdate(
+      { orderId, orderType: 'employee', walletApplied: { $gt: 0 }, walletRefundedAt: null },
+      { $set: { walletRefundedAt: new Date() } },
+      { new: true },
+    );
+  }
+
   async markRefunded(orderId: string) {
     return this._model.findOneAndUpdate(
       { orderId },

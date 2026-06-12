@@ -11,6 +11,7 @@ import { OrderStatus, ITrackingInfo } from '../models/order.model';
 import couponService from './coupon.service';
 import walletService from './wallet.service';
 import mailService from './mail.service';
+import logger from '../utils/logger';
 
 class OrderService {
   constructor(
@@ -48,6 +49,22 @@ class OrderService {
 
     if (!razorpayOrderId || !razorpayPaymentId)
       return { received: true };
+
+    // Verify the captured amount matches what this order is supposed to collect
+    // BEFORE confirming. The Razorpay order amount is computed server-side, but a
+    // capture for a tampered/underpaid amount must never confirm an order and ship
+    // goods. Expected = order total minus any wallet already applied (split orders).
+    const existing = await this._orderRepository.findByRazorpayOrderId(razorpayOrderId);
+    if (!existing) return { received: true };
+
+    const capturedPaise = Number(paymentEntity['amount']);
+    const expectedPaise = Math.round((existing.billing.total - (existing.walletApplied ?? 0)) * 100);
+    if (!Number.isFinite(capturedPaise) || capturedPaise !== expectedPaise) {
+      logger.error(
+        `Razorpay amount mismatch for order ${existing.orderId}: captured ${capturedPaise} paise, expected ${expectedPaise} paise. Order left unconfirmed for manual review.`,
+      );
+      return { received: true };
+    }
 
     const order = await this._orderRepository.confirmPayment({
       razorpayOrderId,
@@ -154,6 +171,13 @@ class OrderService {
   }) {
     if (order.orderType !== 'employee' || !order.walletApplied || order.walletApplied <= 0) return;
     if (!order.employeeId || !order.companyId) return;
+
+    // Atomically claim the refund before crediting. If another path (a concurrent
+    // user cancel or the payment.failed webhook) already refunded this order, the
+    // claim returns null and we must not double-credit the wallet.
+    const claimed = await this._orderRepository.markWalletRefunded(order.orderId);
+    if (!claimed) return;
+
     await walletService.credit(
       order.employeeId.toString(),
       order.companyId.toString(),

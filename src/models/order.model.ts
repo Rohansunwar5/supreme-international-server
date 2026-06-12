@@ -77,6 +77,7 @@ export interface IOrder extends mongoose.Document {
   companyId?: mongoose.Types.ObjectId;
   orderType: 'standard' | 'employee';
   walletApplied: number;
+  walletRefundedAt: Date | null;
   payment: IPayment;
   status: OrderStatus;
   timeline: ITimelineEntry[];
@@ -182,6 +183,9 @@ const orderSchema = new mongoose.Schema<IOrder>(
     companyId: { type: mongoose.Schema.Types.ObjectId, default: undefined },
     orderType: { type: String, enum: ['standard', 'employee'], default: 'standard' },
     walletApplied: { type: Number, default: 0, min: 0 },
+    // Set once, atomically, when reserved wallet credits are refunded — guarantees
+    // a wallet reservation is returned at most once across cancel + payment.failed.
+    walletRefundedAt: { type: Date, default: null },
     payment: { type: paymentSchema, required: true },
     status: {
       type: String,

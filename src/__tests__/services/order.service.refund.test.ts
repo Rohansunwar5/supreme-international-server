@@ -1,4 +1,4 @@
-const orderRepo = { findByOrderId: jest.fn(), markCancelled: jest.fn(), markPaymentFailed: jest.fn() };
+const orderRepo = { findByOrderId: jest.fn(), markCancelled: jest.fn(), markPaymentFailed: jest.fn(), markWalletRefunded: jest.fn() };
 const variantRepo = { adjustStock: jest.fn() };
 const cartRepo = {};
 const usageRepo = {};
@@ -23,14 +23,27 @@ describe('order.service wallet refund', () => {
       orderType: 'employee', walletApplied: 200, employeeId: { toString: () => 'e1' }, companyId: { toString: () => 'co1' }, items: [],
     });
     orderRepo.markCancelled.mockResolvedValue({ orderId: 'SOV-1' });
+    orderRepo.markWalletRefunded.mockResolvedValue({ orderId: 'SOV-1' }); // claim succeeds
     await orderService.cancelOrder('SOV-1', 'e1');
     expect(walletSvc.credit).toHaveBeenCalledWith('e1', 'co1', 200, expect.any(String), undefined, expect.objectContaining({ source: 'refund', referenceId: 'SOV-1' }));
+  });
+
+  it('does not double-credit when the wallet refund was already claimed', async () => {
+    orderRepo.findByOrderId.mockResolvedValue({
+      orderId: 'SOV-1', userId: { toString: () => 'e1' }, status: 'pending',
+      orderType: 'employee', walletApplied: 200, employeeId: { toString: () => 'e1' }, companyId: { toString: () => 'co1' }, items: [],
+    });
+    orderRepo.markCancelled.mockResolvedValue({ orderId: 'SOV-1' });
+    orderRepo.markWalletRefunded.mockResolvedValue(null); // already refunded by another path
+    await orderService.cancelOrder('SOV-1', 'e1');
+    expect(walletSvc.credit).not.toHaveBeenCalled();
   });
 
   it('payment.failed webhook refunds reserved wallet for an employee order', async () => {
     orderRepo.markPaymentFailed.mockResolvedValue({
       orderId: 'SOV-2', orderType: 'employee', walletApplied: 50, employeeId: { toString: () => 'e1' }, companyId: { toString: () => 'co1' },
     });
+    orderRepo.markWalletRefunded.mockResolvedValue({ orderId: 'SOV-2' }); // claim succeeds
     await orderService.processWebhook(Buffer.from('{}'), 'sig', { event: 'payment.failed', payload: { payment: { entity: { order_id: 'rp_1' } } } });
     expect(walletSvc.credit).toHaveBeenCalledWith('e1', 'co1', 50, expect.any(String), undefined, expect.objectContaining({ source: 'refund', referenceId: 'SOV-2' }));
   });
