@@ -87,4 +87,14 @@ describe('employee.checkout.service', () => {
     await expect(employeeCheckoutService.checkout('e1', 'co1', { shippingAddress: address }))
       .rejects.toBeInstanceOf(BadRequestError);
   });
+
+  it('reverses the wallet reservation if order persistence fails', async () => {
+    walletSvc.getWallet.mockResolvedValue({ balance: 1000, currency: 'INR' });
+    walletSvc.debit.mockResolvedValue({ balance: 800, currency: 'INR' });
+    orderRepo.create.mockRejectedValue(new Error('db down'));
+
+    await expect(employeeCheckoutService.checkout('e1', 'co1', { shippingAddress: address }))
+      .rejects.toThrow('db down');
+    expect(walletSvc.credit).toHaveBeenCalledWith('e1', 'co1', 200, expect.any(String), undefined, expect.objectContaining({ source: 'refund', referenceId: expect.any(String) }));
+  });
 });

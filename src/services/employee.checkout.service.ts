@@ -111,55 +111,66 @@ class EmployeeCheckoutService {
       });
     }
 
-    const billing = { subtotal, couponCode, couponDiscount, shippingCharge, shippingTax, total };
-    const baseOrder = {
-      orderId,
-      userId: employeeId,
-      customerEmail: `${employeeId}@employee.local`,
-      sessionId: null,
-      items: orderItems,
-      shippingAddress: body.shippingAddress,
-      billing,
-      couponId,
-      employeeId,
-      companyId,
-      orderType: 'employee' as const,
-      walletApplied,
-    };
+    // After reservation, any failure must reverse the reserved credits (no order exists to cancel).
+    try {
+      const billing = { subtotal, couponCode, couponDiscount, shippingCharge, shippingTax, total };
+      const baseOrder = {
+        orderId,
+        userId: employeeId,
+        customerEmail: `${employeeId}@employee.local`,
+        sessionId: null,
+        items: orderItems,
+        shippingAddress: body.shippingAddress,
+        billing,
+        couponId,
+        employeeId,
+        companyId,
+        orderType: 'employee' as const,
+        walletApplied,
+      };
 
-    // 7. Branch on remainder.
-    if (remainder === 0) {
+      // 7. Branch on remainder.
+      if (remainder === 0) {
+        await this._orderRepository.create({
+          ...baseOrder,
+          status: 'confirmed',
+          payment: { gateway: 'wallet', razorpayOrderId: null, razorpayPaymentId: null, razorpaySignature: null, status: 'paid', method: 'wallet', paidAt: new Date() },
+        });
+        // Confirm immediately: decrement stock + clear the cart (no webhook will arrive).
+        await Promise.all(orderItems.map(i => this._variantRepository.adjustStock(i.variantId.toString(), -i.qty)));
+        await this._cartRepository.clearItems(employeeId);
+        return { orderId, walletApplied, remainder: 0, fullyPaidByWallet: true };
+      }
+
+      const razorpayOrder = await createRazorpayOrder({
+        amountInPaise: Math.round(remainder * 100),
+        receipt: orderId,
+        notes: { orderId },
+      });
       await this._orderRepository.create({
         ...baseOrder,
-        status: 'confirmed',
-        payment: { gateway: 'wallet', razorpayOrderId: null, razorpayPaymentId: null, razorpaySignature: null, status: 'paid', method: 'wallet', paidAt: new Date() },
+        payment: { gateway: 'razorpay', razorpayOrderId: razorpayOrder.id, razorpayPaymentId: null, razorpaySignature: null, status: 'pending', method: null, paidAt: null },
       });
-      // Confirm immediately: decrement stock + clear the cart (no webhook will arrive).
-      await Promise.all(orderItems.map(i => this._variantRepository.adjustStock(i.variantId.toString(), -i.qty)));
-      await this._cartRepository.clearItems(employeeId);
-      return { orderId, walletApplied, remainder: 0, fullyPaidByWallet: true };
+
+      return {
+        orderId,
+        walletApplied,
+        remainder,
+        fullyPaidByWallet: false,
+        razorpayOrderId: razorpayOrder.id,
+        razorpayKeyId: config.RAZORPAY_KEY_ID,
+        amountInPaise: Math.round(remainder * 100),
+        currency: 'INR',
+      };
+    } catch (err) {
+      if (walletApplied > 0) {
+        await walletService.credit(employeeId, companyId, walletApplied, `Reversal for failed order ${orderId}`, undefined, {
+          source: 'refund',
+          referenceId: orderId,
+        });
+      }
+      throw err;
     }
-
-    const razorpayOrder = await createRazorpayOrder({
-      amountInPaise: Math.round(remainder * 100),
-      receipt: orderId,
-      notes: { orderId },
-    });
-    await this._orderRepository.create({
-      ...baseOrder,
-      payment: { gateway: 'razorpay', razorpayOrderId: razorpayOrder.id, razorpayPaymentId: null, razorpaySignature: null, status: 'pending', method: null, paidAt: null },
-    });
-
-    return {
-      orderId,
-      walletApplied,
-      remainder,
-      fullyPaidByWallet: false,
-      razorpayOrderId: razorpayOrder.id,
-      razorpayKeyId: config.RAZORPAY_KEY_ID,
-      amountInPaise: Math.round(remainder * 100),
-      currency: 'INR',
-    };
   }
 }
 
