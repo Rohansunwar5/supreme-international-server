@@ -1,6 +1,17 @@
 import { check } from 'express-validator';
 import { validateRequest } from '.';
 
+export const employeeCheckoutValidator = [
+  check('shippingAddress.fullName').isString().trim().notEmpty().withMessage('Shipping name is required'),
+  check('shippingAddress.phone').isString().trim().notEmpty().withMessage('Shipping phone is required'),
+  check('shippingAddress.line1').isString().trim().notEmpty().withMessage('Address line 1 is required'),
+  check('shippingAddress.city').isString().trim().notEmpty().withMessage('City is required'),
+  check('shippingAddress.state').isString().trim().notEmpty().withMessage('State is required'),
+  check('shippingAddress.pincode').isString().trim().notEmpty().withMessage('Pincode is required'),
+  check('couponCode').optional().isString(),
+  ...validateRequest,
+];
+
 export const checkoutValidator = [
   check('shippingAddress.fullName').notEmpty().withMessage('Full name is required'),
   check('shippingAddress.phone')
