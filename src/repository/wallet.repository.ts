@@ -8,9 +8,13 @@ export class WalletRepository {
   }
 
   async getOrCreate(employeeId: string, companyId: string): Promise<IWallet> {
-    const existing = await this._model.findOne({ employeeId });
-    if (existing) return existing;
-    return this._model.create({ employeeId, companyId, balance: 0 });
+    // Atomic upsert: two concurrent first-time credits/debits can't race the
+    // unique employeeId index into a duplicate-key 500.
+    return this._model.findOneAndUpdate(
+      { employeeId },
+      { $setOnInsert: { employeeId, companyId, balance: 0 } },
+      { upsert: true, new: true, setDefaultsOnInsert: true },
+    ) as Promise<IWallet>;
   }
 
   async atomicCredit(walletId: string, amount: number): Promise<IWallet | null> {
