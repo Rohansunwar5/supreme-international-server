@@ -20,6 +20,12 @@ import employeeCheckoutRouter from './employee.checkout.route';
 
 const v1Router = Router();
 
+// Razorpay webhook must bypass the general per-IP limiter: capture retries arrive
+// in bursts from a single Razorpay egress IP and a 429 means a missed payment.
+// Mounted before generalLimiter so it is never throttled. (It is authenticated by
+// HMAC signature verification, not by rate limiting.)
+v1Router.use('/payments', paymentRouter);
+
 v1Router.use(generalLimiter);
 
 v1Router.get('/', asyncHandler(helloWorld));
@@ -35,7 +41,6 @@ v1Router.use('/cart', cartRouter);
 v1Router.use('/quotations', quotationRouter);
 v1Router.use('/admin', adminRouter);
 v1Router.use('/checkout', checkoutRouter);
-v1Router.use('/payments', paymentRouter);
 v1Router.use('/orders', orderRouter);
 v1Router.use('/user', userRouter);
 v1Router.use('/blogs', blogRouter);
