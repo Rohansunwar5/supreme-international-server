@@ -40,3 +40,14 @@ every change is an immutable ledger entry stamped with the resulting balance. De
 a balance can never go negative. Employees view their own balance/history at `/employee/wallet` and
 `/employee/wallet/ledger` (behind `isEmployee`). Credits never expire. Spending credits at checkout
 arrives in Phase 2d.
+
+## Employee ordering (Phase 2d)
+
+Employees check out their cart at `POST /employee/checkout` (`isEmployee`). The service re-validates
+every item is in the company catalog scope, re-prices, applies an optional **company-scoped** coupon
+(`coupon.companyId`), then auto-applies wallet credits (`min(balance, total)`) and reserves them
+(`order_redemption` debit). Employee gifting orders ship free. If credits cover the full total the
+order is confirmed immediately (`payment.gateway:'wallet'`, stock decremented, cart cleared);
+otherwise a Razorpay order is created for the remainder and confirmed by the existing
+`payment.captured` webhook. Cancelling the order or a `payment.failed` webhook refunds the reserved
+credits. Employees view/cancel orders via the existing `/orders/*` routes.
