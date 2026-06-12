@@ -1,6 +1,5 @@
 import JWT from 'jsonwebtoken';
 import { Request, Response, NextFunction } from 'express';
-import { BadRequestError } from '../../errors/bad-request.error';
 import { encodedJWTCacheManager } from '../../services/cache/entities';
 import { UnauthorizedError } from '../../errors/unauthorized.error';
 import { decode, encode, encryptionKey } from '../../services/crypto.service';
@@ -16,14 +15,21 @@ const getAuthMiddlewareByJWTSecret = (jwtSecret: string) => async (
   next: NextFunction
 ) => {
   try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) {
-      throw new BadRequestError('Authorization header is missing');
-    }
+    const token = req.headers.authorization?.split(' ')[1];
 
-    const token = authHeader.split(' ')[1];
-    if (!token) throw new BadRequestError('Token is missing or invalid');
-    const { _id } = JWT.verify(token, jwtSecret) as IJWTVerifyPayload;
+    // No credentials supplied → proceed unauthenticated (optional-auth routes
+    // treat this as a guest; hard-guarded routes are rejected later by requireAuth).
+    if (!token) return next();
+
+    // A token that IS supplied but fails to verify must NOT be silently downgraded
+    // to a guest — surface it so forged/expired tokens are rejected everywhere.
+    let payload: IJWTVerifyPayload;
+    try {
+      payload = JWT.verify(token, jwtSecret) as IJWTVerifyPayload;
+    } catch {
+      throw new UnauthorizedError('Invalid or expired token');
+    }
+    const { _id } = payload;
 
     const key = await encryptionKey(config.JWT_CACHE_ENCRYPTION_KEY);
     const cachedJWT = await encodedJWTCacheManager.get({ userId: _id });
@@ -31,7 +37,7 @@ const getAuthMiddlewareByJWTSecret = (jwtSecret: string) => async (
     if (!cachedJWT) {
       const encryptedData = await encode(token, key);
       await encodedJWTCacheManager.set({ userId: _id }, encryptedData);
-    } else if (cachedJWT) {
+    } else {
       const decodedJWT = await decode(cachedJWT, key);
       if (decodedJWT !== token) {
         throw new UnauthorizedError('Session Expired!');
@@ -43,7 +49,7 @@ const getAuthMiddlewareByJWTSecret = (jwtSecret: string) => async (
     };
     next();
   } catch (error) {
-    next();
+    next(error);
   }
 };
 export default getAuthMiddlewareByJWTSecret;

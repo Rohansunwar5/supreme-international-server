@@ -1,5 +1,4 @@
 import { Request, Response, NextFunction } from 'express';
-import { BadRequestError } from '../../errors/bad-request.error';
 import { UnauthorizedError } from '../../errors/unauthorized.error';
 import adminAuthService from '../../services/admin.auth.service';
 import { decode, encode, encryptionKey } from '../../services/crypto.service';
@@ -7,12 +6,13 @@ import config from '../../config';
 
 const verifyAdminToken = async (req: Request, _res: Response, next: NextFunction) => {
   try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) throw new BadRequestError('Authorization header is missing');
+    const token = req.headers.authorization?.split(' ')[1];
 
-    const token = authHeader.split(' ')[1];
-    if (!token) throw new BadRequestError('Token is missing or invalid');
+    // No credentials → leave req.admin unset; requireAdminAuth rejects the request.
+    if (!token) return next();
 
+    // A supplied-but-invalid/expired token must be surfaced, not swallowed into a
+    // request that silently proceeds without admin identity.
     const adminId = await adminAuthService.verifyTokenAndGetId(token);
 
     const key = await encryptionKey(config.JWT_CACHE_ENCRYPTION_KEY);
@@ -27,8 +27,8 @@ const verifyAdminToken = async (req: Request, _res: Response, next: NextFunction
 
     req.admin = { _id: adminId };
     next();
-  } catch {
-    next();
+  } catch (error) {
+    next(error);
   }
 };
 
