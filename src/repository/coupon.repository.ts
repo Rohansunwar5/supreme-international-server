@@ -14,6 +14,7 @@ export interface ICreateCouponParams {
   startsAt: Date;
   expiresAt?: Date | null;
   createdBy: string;
+  companyId?: string;
 }
 
 export class CouponRepository {

@@ -16,6 +16,7 @@ export interface ICoupon extends mongoose.Document {
   startsAt: Date;
   expiresAt: Date | null;
   createdBy: mongoose.Types.ObjectId;
+  companyId?: mongoose.Types.ObjectId;
 }
 
 const couponSchema = new mongoose.Schema<ICoupon>(
@@ -35,6 +36,7 @@ const couponSchema = new mongoose.Schema<ICoupon>(
     startsAt: { type: Date, required: true },
     expiresAt: { type: Date, default: null },
     createdBy: { type: mongoose.Schema.Types.ObjectId, required: true },
+    companyId: { type: mongoose.Schema.Types.ObjectId, default: undefined },
   },
   { timestamps: true },
 );
